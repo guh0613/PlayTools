@@ -34,13 +34,21 @@ public class ControlMode: Equatable {
         let centre = NotificationCenter.default
         let main = OperationQueue.main
         if PlaySettings.shared.noKMOnInput {
-            centre.addObserver(forName: UIApplication.keyboardDidHideNotification, object: nil, queue: main) { _ in
-                ModeAutomaton.onKeyboardHide()
-                Toucher.writeLog(logMessage: "virtual keyboard did hide")
+            centre.addObserver(forName: UITextField.textDidEndEditingNotification, object: nil, queue: main) { _ in
+                ModeAutomaton.onUITextInputEndEdit()
+                Toucher.writeLog(logMessage: "uitextinput end edit")
             }
-            centre.addObserver(forName: UIApplication.keyboardWillShowNotification, object: nil, queue: main) { _ in
-                ModeAutomaton.onKeyboardShow()
-                Toucher.writeLog(logMessage: "virtual keyboard will show")
+            centre.addObserver(forName: UITextField.textDidBeginEditingNotification, object: nil, queue: main) { _ in
+                ModeAutomaton.onUITextInputBeginEdit()
+                Toucher.writeLog(logMessage: "uitextinput begin edit")
+            }
+            centre.addObserver(forName: UITextView.textDidEndEditingNotification, object: nil, queue: main) { _ in
+                ModeAutomaton.onUITextInputEndEdit()
+                Toucher.writeLog(logMessage: "uitextinput end edit")
+            }
+            centre.addObserver(forName: UITextView.textDidBeginEditingNotification, object: nil, queue: main) { _ in
+                ModeAutomaton.onUITextInputBeginEdit()
+                Toucher.writeLog(logMessage: "uitextinput begin edit")
             }
             set(.ARBITRARY_CLICK)
         } else {
@@ -57,9 +65,11 @@ public class ControlMode: Equatable {
             self.keyboardAdapter.handleKey(keycode: keycode, pressed: pressed, isRepeat: isRepeat)},
           swapMode: ModeAutomaton.onOption)
 
-        AKInterface.shared!.setupScrollWheel({deltaX, deltaY in
-            self.mouseAdapter.handleScrollWheel(deltaX: deltaX, deltaY: deltaY)
-        })
+        if PlaySettings.shared.enableScrollWheel {
+            AKInterface.shared!.setupScrollWheel({deltaX, deltaY in
+                self.mouseAdapter.handleScrollWheel(deltaX: deltaX, deltaY: deltaY)
+            })
+        }
 
         AKInterface.shared!.setupMouseMoved({deltaX, deltaY in
             self.mouseAdapter.handleMove(deltaX: deltaX, deltaY: deltaY)
@@ -91,13 +101,18 @@ public class ControlMode: Equatable {
 //            Toast.showHint(title: "should hide cursor? \(mouseAdapter.cursorHidden())",
 //                       text: ["current state: " + mode])
         }
-        if mouseAdapter.cursorHidden() != wasHidden {
+        if mouseAdapter.cursorHidden() != wasHidden && settings.keymapping {
             if wasHidden {
                 NotificationCenter.default.post(name: NSNotification.Name.playtoolsCursorWillShow,
                                                 object: nil, userInfo: [:])
                 if screen.fullscreen {
                     screen.switchDock(true)
                 }
+
+                if mode == .OFF || mode == .EDITOR {
+                    ActionDispatcher.invalidateActions()
+                }
+
                 AKInterface.shared!.unhideCursor()
             } else {
                 NotificationCenter.default.post(name: NSNotification.Name.playtoolsCursorWillHide,

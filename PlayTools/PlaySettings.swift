@@ -74,8 +74,10 @@ let settings = PlaySettings.shared
     lazy var maaToolsPort = settingsData.maaToolsPort
     
     @objc lazy var rootWorkDir = settingsData.rootWorkDir
-    
+
     @objc lazy var noKMOnInput = settingsData.noKMOnInput
+
+    @objc lazy var enableScrollWheel = settingsData.enableScrollWheel
 }
 
 struct AppSettingsData: Codable {
@@ -101,4 +103,5 @@ struct AppSettingsData: Codable {
     var maaToolsPort = 1717
     var rootWorkDir = true
     var noKMOnInput = false
+    var enableScrollWheel = true
 }
